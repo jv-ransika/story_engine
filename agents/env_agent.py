@@ -331,5 +331,3 @@ env_agent_workflow.add_conditional_edges(
         False: "scene_creation"
     }
 )
-
-env_agent_app = env_agent_workflow.compile()

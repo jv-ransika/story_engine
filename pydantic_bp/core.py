@@ -62,3 +62,4 @@ class Entity(BaseModel):
 
 CharacterMemoryUnit.model_rebuild()
 
+breakpoint()
