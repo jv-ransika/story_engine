@@ -46,6 +46,7 @@ def scene_creator(state: EnvAgentState) -> EnvAgentState:
     '''
 
     print(f"Creating scene number {state['next_scene_no']}...")
+
     
     system_mssage = f"""
         You are a scene creator agent. Your task is to create a new scene with the help of available characters and entities to complete the scenario.
@@ -82,8 +83,8 @@ def scene_creator(state: EnvAgentState) -> EnvAgentState:
             }
             for situation in moment.situations:
                 situation_data = {
-                    "who_said": situation.who_said.name,
-                    "who_listens": [char.name for char in situation.who_listens],
+                    "who_said": situation.who_said,
+                    "who_listens": [char for char in situation.who_listens],
                     "dialogue": situation.dialogue,
                     "action": situation.action
                 }
@@ -183,8 +184,8 @@ def scene_validator(state: EnvAgentState) -> EnvAgentState:
         }
         for situation in moment.situations:
             situation_data = {
-                "who_said": situation.who_said.name,
-                "who_listens": [char.name for char in situation.who_listens],
+                "who_said": situation.who_said,
+                "who_listens": [char for char in situation.who_listens],
                 "dialogue": situation.dialogue,
                 "action": situation.action
             }
@@ -256,8 +257,8 @@ def final_goal_validator(state: EnvAgentState) -> EnvAgentState:
             }
             for situation in moment.situations:
                 situation_data = {
-                    "who_said": situation.who_said.name,
-                    "who_listens": [char.name for char in situation.who_listens],
+                    "who_said": situation.who_said,
+                    "who_listens": [char for char in situation.who_listens],
                     "dialogue": situation.dialogue,
                     "action": situation.action
                 }
@@ -301,7 +302,6 @@ def final_goal_validator(state: EnvAgentState) -> EnvAgentState:
         "is_main_goal_achieved": response.is_main_goal_achieved,
         "next_scene": response.next_scene
     }
-
 
 env_agent_workflow = StateGraph(EnvAgentState)
 env_agent_workflow.add_node("scene_creation", scene_creator)

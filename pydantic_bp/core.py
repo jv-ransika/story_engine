@@ -2,8 +2,8 @@ from pydantic import BaseModel, Field, model_validator
 from typing import List, Optional
 
 class CharacterMemoryUnit(BaseModel):
-    who_said: 'Character'
-    who_listens: List['Character']
+    who_said: str
+    who_listens: List[str]
     dialogue: str
     action: str
 
@@ -60,6 +60,3 @@ class Entity(BaseModel):
     description: str
 
 
-CharacterMemoryUnit.model_rebuild()
-
-breakpoint()

@@ -37,8 +37,8 @@ def character_agent(state: CharacterAgentState) -> CharacterAgentState:
 
 
     new_memory_unit = CharacterMemoryUnit(
-        who_said=state.current_character,
-        who_listens=[state.scene.characters[i] for i in response.who_listens],
+        who_said=state.current_character.name,
+        who_listens=[state.scene.characters[i].name for i in response.who_listens],
         dialogue=response.dialogue,
         action=response.action
     )

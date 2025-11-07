@@ -27,7 +27,7 @@ def run_env_agent(state, resume: bool):
     config = {
             "recursion_limit": 50,
             "configurable": {
-                "thread_id": get_env_variable("thread_id")
+                "thread_id": get_env_variable("THREAD_ID")
             }
         }
 
@@ -45,7 +45,7 @@ def run_env_agent(state, resume: bool):
 
 def check_story_exists(app) -> bool:
     """Checks if a saved state exists for the given thread_id."""
-    config = {"configurable": {"thread_id": get_env_variable("thread_id")}}
+    config = {"configurable": {"thread_id": get_env_variable("THREAD_ID")}}
     try:
         # get_state() will raise an exception if no state is found
         app.get_state(config)
@@ -58,30 +58,46 @@ def check_story_exists(app) -> bool:
 if __name__ == "__main__":
     input_text = "In a distant future, humanity has colonized Mars. Amidst political turmoil and environmental challenges, a group of explorers embarks on a mission to uncover ancient Martian artifacts that could hold the key to humanity's survival."
 
-    need_restart = input("Do you want to restart the story? (y/n): ")
 
     with SqliteSaver.from_conn_string("env_agent_checkpoint.db") as memory:
         env_agent_app = env_agent_workflow.compile(checkpointer=memory)
 
-        if need_restart.lower() == 'y':
-            print("Starting new story...")
-            output = run_start_agent(input_text)
-            print(output)
+        need_generate_story = input("Do you want to generate story? (y/n): ")
+        if need_generate_story.lower() == 'y':
+            need_restart = input("Do you want to restart the story? (y/n): ")
 
-            output = run_env_agent({
-                "main_goal": output["main_goal"],
-                "is_main_goal_achieved": False,
-                "characters": output["characters"],
-                "entities": output["entities"],
-                "scenes": [],
-                "next_character_index": 0,
-                "next_scene_no": 1,
-                "next_scene": output["start_scene_description"],
-                "is_scene_complete": False,
-                "current_scene": None,
-                "next_moment_no": 1,
-                "current_moment": None
-            }, resume=False)
+            if need_restart.lower() == 'y':
+                print("Starting new story...")
+                output = run_start_agent(input_text)
+                print(output)
+
+                output = run_env_agent({
+                    "main_goal": output["main_goal"],
+                    "is_main_goal_achieved": False,
+                    "characters": output["characters"],
+                    "entities": output["entities"],
+                    "scenes": [],
+                    "next_character_index": 0,
+                    "next_scene_no": 1,
+                    "next_scene": output["start_scene_description"],
+                    "is_scene_complete": False,
+                    "current_scene": None,
+                    "next_moment_no": 1,
+                    "current_moment": None
+                }, resume=False)
+            else:
+                print("Resuming story from checkpoint...")
+                output = run_env_agent(None, resume=True)
+
         else:
-            print("Resuming story from checkpoint...")
-            output = run_env_agent(None, resume=True)
+            config = {
+                "recursion_limit": 50,
+                "configurable": {
+                    "thread_id": get_env_variable("THREAD_ID")
+                }
+            }
+
+            checkpoint = env_agent_app.get_state(config)
+            
+
+            breakpoint()
