@@ -4,10 +4,11 @@ Multi‑Agent Storyworld Simulator is an ongoing project that simulates episodic
 
 ## Highlights
 
-- Multi‑agent architecture: autonomous character agents, an environment orchestrator, and a story initializer.
-- Stateful simulation: scenes, moments, per‑character short/long term memory units, and goal checks.
-- Checkpointing: saves and resumes story state using SQLite so long-running narratives can be paused and resumed.
-- Designed for reproducible, goal‑directed episodic story generation and emergent interactions between agents.
+- **Multi‑agent orchestration**: 6+ specialized agents working in coordinated workflows (Start Agent, Scene Creator, Moment Runner, Scene Validator, Goal Validator, and Per-Character Agents).
+- **Autonomous characters**: Each character has independent agents with personality-driven decision-making and emergent behavior.
+- **Stateful simulation**: Scenes, moments, per‑character short/long term memory units (115-250 events), and intelligent goal validation.
+- **Persistent narratives**: SQLite checkpointing enables pause/resume from any exact moment without data loss.
+- **Designed for**: Reproducible, goal‑directed episodic story generation with emergent multi-agent interactions.
 
 ## Tech stack
 
@@ -79,28 +80,57 @@ story_engine/
 
 #### 1. **Agents** (`agents/`)
 
-**StartAgent** (`start_agent.py`)
-- Initializes the story world with user-provided context
-- Generates initial characters with goals, personality traits, strengths, and weaknesses
-- Creates entities relevant to the story
-- Defines the starting scene and main narrative goal
-- Output: `startAgentState` containing characters, entities, scene description, and main goal
+**Start Agent** (`start_agent.py`) - Story Initialization
+- Initializes the story world with user-provided narrative context
+- Generates initial character profiles with goals, personality traits, strengths, and weaknesses
+- Creates story-relevant entities and objects
+- Defines the starting scene description and main narrative goal
+- Output: Characters, entities, opening scene, and main objective ready for episodic simulation
 
-**EnvAgent** (`agents/env_agent.py`)
-- Orchestrates the episodic simulation workflow
-- Manages scene generation and progression
-- Sequences character interactions within moments
-- Tracks narrative progress toward the main goal
-- Handles state transitions between scenes and moments
-- State: `EnvAgentState` with characters, scenes, current moment, and goal achievement status
+**Environment Agent Workflow** (`agents/env_agent.py`) - Multi-Agent Orchestration
+A sophisticated LangGraph state-graph containing 5 specialized agent nodes that work in coordinated cycles:
 
-**CharacterAgent** (`agents/character_agent.py`)
-- Handles individual character behavior within a scene
-- Generates character dialogue and actions via LLM
-- Manages short-term and long-term memory updates
-- Determines which characters listen to each interaction
-- Updates character goals based on story events
-- State: `CharacterAgentState` with scene, character, and memory updates
+1. **Scene Creator Agent**
+   - Dynamically generates new scenes based on narrative progress, character availability, and entities
+   - Considers previous scenes and story trajectory
+   - Determines which characters will participate in the upcoming scene
+   - Output: Scene description with character assignments
+
+2. **Moment Runner Agent**
+   - Orchestrates individual character interactions within each scene
+   - Sequences character turns and dialogue moments
+   - Invokes Character Agents for each participating character
+   - Collects and aggregates character responses (dialogue, actions, memory updates)
+   - Output: Completed moment with all character interactions recorded
+
+3. **Scene Validator Agent**
+   - Evaluates whether the current scene has achieved its narrative purpose
+   - Determines if scene objectives are met or if more moments are needed
+   - Decides scene completion status
+   - Conditional logic: If scene incomplete → loops back to Moment Runner; if complete → proceeds to Goal Validator
+   - Output: `is_scene_complete` flag
+
+4. **Goal Validator Agent**
+   - Assesses progress toward the main story objective
+   - Evaluates if the central narrative goal has been achieved
+   - If goal not achieved → triggers Scene Creator for the next scene
+   - If goal achieved → ends the narrative workflow
+   - Tracks goal achievement status across episodes
+   - Output: `is_main_goal_achieved` flag
+
+5. **Character Agents** (`agents/character_agent.py`) - Per-Character Autonomous Behavior
+   - Invoked by Moment Runner for each character participating in a moment
+   - Generate character-specific dialogue and actions based on:
+     - Character personality traits, strengths, and weaknesses
+     - Current short-term and long-term goals
+     - Memory of past events (115-250 memory units per character)
+     - Scene context and other characters present
+   - Maintain independent memory systems:
+     - Short-term memory: Recent events (dynamically sized based on memory_factor)
+     - Long-term memory: Important events and learnings
+   - Determine which other characters listen to each interaction
+   - Update personal goals based on scene developments
+   - Output: Dialogue, action, memory updates, and listener assignments
 
 #### 2. **Data Models** (`pydantic_bp/core.py`)
 
@@ -126,15 +156,23 @@ story_engine/
 ```
 User Input
     ↓
-[StartAgent] → Characters, Entities, Scene, Goal
+[Start Agent] → Characters, Entities, Scene, Goal
     ↓
-[EnvAgent Workflow] → Scene Manager
-    ↓
-    ├→ [Scene Generator] → Next Scene
-    ↓
-    ├→ [Character Sequencer] → Next Character
-    ↓
-    └→ [CharacterAgent] → Dialogue, Action, Memory Updates
+[Environment Agent Workflow - LangGraph State Graph]
+    ├→ [Scene Creator Agent] → Generate Next Scene
+    │    ↓
+    ├→ [Moment Runner Agent] → Execute Moment
+    │    ├→ [Character Agent 1] → Dialogue, Action, Memory
+    │    ├→ [Character Agent 2] → Dialogue, Action, Memory
+    │    └→ [Character Agent N] → Dialogue, Action, Memory
+    │    ↓
+    ├→ [Scene Validator Agent] → Is Scene Complete?
+    │    ├─ NO → Loop back to Moment Runner
+    │    └─ YES → Proceed
+    │    ↓
+    └→ [Goal Validator Agent] → Is Main Goal Achieved?
+         ├─ NO → Loop back to Scene Creator
+         └─ YES → End Workflow
     ↓
 [Memory & Checkpoint] → SQLite (env_agent_checkpoint.db)
     ↓
