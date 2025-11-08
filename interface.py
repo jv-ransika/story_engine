@@ -9,11 +9,6 @@ from utils.get_env import get_env_variable
 from pydantic_bp.core import Character, Entity, Scene, Moment
 import pandas as pd
 import time
-import warnings
-
-# Suppress Streamlit warnings
-warnings.filterwarnings("ignore", message=".*missing ScriptRunContext.*")
-st.set_option('client.showErrorDetails', False)
 
 
 st.set_page_config(
